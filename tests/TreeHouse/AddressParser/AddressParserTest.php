@@ -96,4 +96,12 @@ class AddressParserTest extends \PHPUnit_Framework_TestCase
             array('Dr.C.A.Gerkestr.20 De Schelp 81')
         );
     }
+
+    public function testEmptyStringReturnsNull()
+    {
+        $this->assertNull($this->parser->parse(''));
+        $this->assertNull($this->parser->parse(null));
+        $this->assertNull($this->parser->parse(false));
+        $this->assertNull($this->parser->parse(0));
+    }
 }

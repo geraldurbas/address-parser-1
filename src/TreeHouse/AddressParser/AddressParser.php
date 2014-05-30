@@ -50,8 +50,8 @@ class AddressParser
      * @var array
      */
     protected $specialTokenMap = array(
-        '\'t' => 'HET_TOKEN',
-        '\'s' => 'SCH_TOKEN',
+        '\'t'  => 'HET_TOKEN',
+        '\'s'  => 'SCH_TOKEN',
         '\'s-' => 'SCH_DASH_TOKEN',
     );
 
@@ -85,8 +85,8 @@ class AddressParser
      *
      * @throws \RuntimeException when it is unable to parse the address
      *
-     * @return array|null array with the following keys: street, number, address or null when an
-     *                    empty address is given
+     * @return array<string,string>|null array with the following keys: street, number, address or
+     *                                   null when an empty address is given
      */
     public function parse($address)
     {
@@ -128,7 +128,7 @@ class AddressParser
     /**
      * Parses an address
      *
-     * @param  string $address
+     * @param string $address
      *
      * @return string
      */
@@ -179,9 +179,10 @@ class AddressParser
     /**
      * Normalizes a house number
      *
-     * @param  string|int $number
-     * @param  string     $numberSuffix
-     * @return string
+     * @param  string|int  $number
+     * @param  string      $numberSuffix
+     *
+     * @return string|null
      */
     protected function normalizeNumber($number, $numberSuffix)
     {
