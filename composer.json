@@ -1,9 +1,10 @@
 {
     "name": "treehouselabs/address-parser",
+    "description": "A dutch address parser",
     "authors": [
         {
             "name": "fieg",
-            "email": "jeroen@fieg.nl"
+            "email": "jeroen@treehouse.nl"
         }
     ],
     "minimum-stability": "stable",
