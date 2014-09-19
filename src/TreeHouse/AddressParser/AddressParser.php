@@ -119,9 +119,11 @@ class AddressParser
         $street = strtr($street, array_flip($this->specialTokenMap));
 
         return array(
-            'street'  => trim($street),
-            'number'  => $streetNumber,
-            'address' => trim(sprintf('%s %s', $street, $streetNumber)),
+            'street'                => trim($street),
+            'number'                => $streetNumber,
+            'number_without_suffix' => $number,
+            'suffix'                => $numberSuffix,
+            'address'               => trim(sprintf('%s %s', $street, $streetNumber)),
         );
     }
 
