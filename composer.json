@@ -16,6 +16,6 @@
         "phpunit/phpunit": "~4.1"
     },
     "autoload": {
-      "psr-4": { "TreeHouse\\AddressParser\\": "src/TreeHouse/AddressParser" }
+      "psr-4": { "TreeHouse\\AddressParser\\": "src/TreeHouse/AddressParser/" }
     }
 }
