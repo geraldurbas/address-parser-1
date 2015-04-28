@@ -8,85 +8,75 @@ class AddressParser
 {
     /**
      * Start with potential numbers, followed by (at least one) alphabetic character(s),
-     * and excluding any unexpected characters (#, @, %, etc.)
+     * and excluding any unexpected characters (#, @, %, etc.).
      *
      * @var string
      */
-    protected $regexStreetName         = '\d*[a-zA-Z][^\d\$\%\@\#\*]';
+    protected $regexStreetName = '\d*[a-zA-Z][^\d\$\%\@\#\*]';
 
     /**
-     * The first following number(s) preceded by a letter, dash or space
+     * The first following number(s) preceded by a letter, dash or space.
      *
      * @var string
      */
-    protected $regexHouseNumber        = '(?<=[a-z\- ])[0-9]';
+    protected $regexStreetNumber = '(?<=[a-z\- ])[0-9]';
 
     /**
      * Followed by pretty much everything else:
-     * the special characters should've been stripped already at this point
+     * the special characters should've been stripped already at this point.
      *
      * @var string
      */
-    protected $regexHouseNumberSuffix = '[a-z0-9\-\/\s\+,\.\(\)#&]';
+    protected $regexStreetNumberSuffix = '[a-z0-9\-\/\s\+,\.\(\)#&]';
 
     /**
-     * Composed regex
+     * Composed regex.
      *
      * @var string
      */
     protected $addressRegex;
 
     /**
-     * Keysword that will be stripped during parsing
+     * Keysword that will be stripped during parsing.
      *
      * @var array
      */
-    protected $strippableKeywords = array(
-        'recreatie',
-        'verlaagd',
-    );
+    protected $strippableKeywords;
 
     /**
      * @var array
      */
-    protected $specialTokenMap = array(
+    protected $specialTokenMap = [
         '\'t'  => 'HET_TOKEN',
         '\'s'  => 'SCH_TOKEN',
         '\'s-' => 'SCH_DASH_TOKEN',
-    );
+    ];
 
     /**
-     * Holds processed keywords as a regular expression
-     *
-     * @see self::getKeywords()
-     *
-     * @var string
+     * @param array $strippableKeywords
      */
-    protected $keywords;
-
-    /**
-     * Constructor.
-     */
-    public function __construct()
+    public function __construct(array $strippableKeywords = [])
     {
+        $this->strippableKeywords = $strippableKeywords;
+
         // compose full address regex
         $this->addressRegex = sprintf(
-            '/^(%s+)((%s+)(%s*))?$/i',
+            '/^(?P<street>%s+)((?P<number>%s+)(?P<suffix>%s*))?$/i',
             $this->regexStreetName,
-            $this->regexHouseNumber,
-            $this->regexHouseNumberSuffix
+            $this->regexStreetNumber,
+            $this->regexStreetNumberSuffix
         );
     }
 
     /**
-     * Parses an address into parts
+     * Parses an address into parts.
      *
      * @param string $address
      *
      * @throws \RuntimeException when it is unable to parse the address
      *
-     * @return array<string,string>|null array with the following keys: street, number, address or
-     *                                   null when an empty address is given
+     * @return array|null An array with the following keys: street, number,
+     *                    address or null when an empty address is given
      */
     public function parse($address)
     {
@@ -105,30 +95,30 @@ class AddressParser
             return trim($match, ' -./');
         }, $matches);
 
-        // ignore warnings about unset arguments (this can happen because
-        // the pattern has optional fields)
-        @list($fullmatch, $street, /* number group */, $number, $numberSuffix) = $matches;
+        $street = $matches['street'];
+        $number = isset($matches['number']) ? $matches['number'] : null;
+        $suffix = isset($matches['suffix']) ? $matches['suffix'] : null;
 
         // validate numberSuffix
-        if (preg_match('/[a-z]{5,}/i', $numberSuffix)) {
-            throw new InvalidAddressException(sprintf('Unabled to parse number suffix "%s"', $numberSuffix));
+        if (null !== $suffix && preg_match('/[a-z]{5,}/i', $suffix)) {
+            throw new InvalidAddressException(sprintf('Unabled to parse number suffix "%s"', $suffix));
         }
 
-        $streetNumber = $this->normalizeNumber($number, $numberSuffix);
+        $streetNumber = $this->normalizeNumber($number, $suffix);
 
         $street = strtr($street, array_flip($this->specialTokenMap));
 
-        return array(
+        return [
             'street'                => trim($street),
             'number'                => $streetNumber,
             'number_without_suffix' => $number,
-            'suffix'                => $numberSuffix,
+            'suffix'                => $suffix,
             'address'               => trim(sprintf('%s %s', $street, $streetNumber)),
-        );
+        ];
     }
 
     /**
-     * Parses an address
+     * Parses an address.
      *
      * @param string $address
      *
@@ -140,17 +130,17 @@ class AddressParser
         // to their unicode equivalents.
         $address = trim(html_entity_decode($address, ENT_NOQUOTES | ENT_XML1, 'UTF-8'));
 
-        $keywords = $this->getKeywords();
+        // remove keywords
+        $address = str_ireplace($this->strippableKeywords, '', $address);
 
-        $replacements = array(
-            '/\*/'                   => ' ',    // convert asterisks to spaces
-            '/[\x{2000}-\x{200F}]/u' => '',     // remove zero width characters
-            '/'.$keywords.'/i'       => '',     // remove keywords
-            '/[\(\)]*/'              => '',     // remove parentheses
-            '/[\-\/\.,"\' \!\?`]*$/'  => '',     // remove trailing punctuation and whitespace
-            '/ {2,}/'                => ' ',    // correct more than 1 consecutive space
-            '/([^\d])[,#](\d+)/'        => '\\1 \\2',    // correct comma
-        );
+        $replacements = [
+            '/\*/'                   => ' ',        // convert asterisks to spaces
+            '/[\x{2000}-\x{200F}]/u' => '',         // remove zero width characters
+            '/[\(\)]*/'              => '',         // remove parentheses
+            '/[\-\/\.,"\' \!\?`]*$/' => '',         // remove trailing punctuation and whitespace
+            '/ {2,}/'                => ' ',        // correct more than 1 consecutive space
+            '/([^\d])[,#](\d+)/'     => '\\1 \\2',  // correct comma
+        ];
 
         // replace these one by one as we rely on removing trailing stuff that doesn't necessarily end in exact order
         // eg: **- or *-* or --*, etc.
@@ -164,10 +154,8 @@ class AddressParser
         $address = \Normalizer::normalize($address, \Normalizer::FORM_KD);
 
         // normalize swapped number-street
-        if (preg_match('/^(\d{2,}) ([a-z ]+)$/i', $address, $matches)) {
-            list (, $number, $street) = $matches;
-
-            $address = sprintf('%s %d', $street, $number);
+        if (preg_match('/^(?P<number>\d{2,}) (?P<street>[a-z ]+)$/i', $address, $matches)) {
+            $address = sprintf('%s %d', $matches['street'], $matches['number']);
         }
 
         $address = strtr($address, $this->specialTokenMap);
@@ -179,49 +167,29 @@ class AddressParser
     }
 
     /**
-     * Normalizes a house number
+     * Normalizes a street number.
      *
-     * @param  string|int  $number
-     * @param  string      $numberSuffix
+     * @param string|int $number
+     * @param string     $numberSuffix
      *
      * @return string|null
      */
     protected function normalizeNumber($number, $numberSuffix)
     {
-        $retval = array();
+        $retval = [];
 
-        foreach (array($number, $numberSuffix) as $part) {
+        foreach ([$number, $numberSuffix] as $part) {
             $subparts = preg_split('/[^\w\+#&]+/', $part);
-            if ($subparts && count($subparts) > 0) {
+            if (is_array($subparts) && !empty($subparts)) {
                 $retval = array_merge($retval, $subparts);
-            } else {
-                $retval[] = $part;
             }
         }
 
         // remove empty parts
-        $retval = array_filter($retval, function($match) {
+        $retval = array_filter($retval, function ($match) {
             return trim($match) !== '';
         });
 
         return empty($retval) ? null : implode('-', $retval);
-    }
-
-    /**
-     * Process strippableKeywords and return as a regular expression
-     *
-     * @return string
-     */
-    protected function getKeywords()
-    {
-        if (!isset($this->keywords)) {
-            $keywords = array_map(function ($keyword) {
-                return preg_quote($keyword, '/');
-            }, $this->strippableKeywords);
-
-            $this->keywords = implode('|', $keywords);
-        }
-
-        return $this->keywords;
     }
 }
