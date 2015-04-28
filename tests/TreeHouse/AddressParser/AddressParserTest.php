@@ -72,11 +72,7 @@ class AddressParserTest extends \PHPUnit_Framework_TestCase
             ['\'t Leantsje 10', '\'t Leantsje 10', '\'t Leantsje', '10'],
             ['\'s-Gravendijkwal 95', '\'s-Gravendijkwal 95', '\'s-Gravendijkwal', '95'],
             ['\'s Gravenweg 754', '\'s Gravenweg 754', '\'s Gravenweg', '754'],
-
-            // TODO this goes against everything... maybe maintain an index of exceptions? We need more test data to determine this.
-//             array('Plein 1953 83', 'Plein 1953 83', 'Plein 1953', '83')
-//             array('Laan \'40-\'45 42', 'Laan \'40-\'45 42', 'Laan \'40-\'45', '42')
-//            array('baronielaan ¨63a', 'Baronielaan 63-a', 'Baronielaan', '63-a'),
+//            ['baronielaan ¨63a', 'Baronielaan 63-a', 'Baronielaan', '63-a'],
         ];
     }
 
@@ -94,9 +90,23 @@ class AddressParserTest extends \PHPUnit_Framework_TestCase
     {
         return [
             ['1235576'],
-            ['Dr.C.A.Gerkestraat 20 De Schelp 81'],
-            ['Dr.C.A.Gerkestr.20 De Schelp 81'],
+            ['Laan \'40-\'45 42'], // TODO this should be parseable
         ];
+    }
+
+    /**
+     * @dataProvider             getUnparseableAddresses
+     * @expectedException        \TreeHouse\AddressParser\Exception\InvalidAddressException
+     * @expectedExceptionMessage too many (>= 3) alphanumeric characters
+     */
+    public function testTooManySuffixCharacters()
+    {
+        $parser = new AddressParser([], 10);
+        $address = $parser->parse('Hoofdweg 5 bungalow 7');
+        $this->assertSame('5-bungalow-7', $address['number']);
+
+        $parser = new AddressParser([], 3);
+        $parser->parse('Hoofdweg 5 bungalow 7');
     }
 
     public function testEmptyStringReturnsNull()
