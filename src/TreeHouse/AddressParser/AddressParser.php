@@ -44,20 +44,29 @@ class AddressParser
     protected $strippableKeywords;
 
     /**
+     * Maximum amount of alphanumeric characters that may occur in the street number suffix.
+     *
+     * @var integer
+     */
+    protected $maxSuffixWordLength;
+
+    /**
      * @var array
      */
     protected $specialTokenMap = [
-        '\'t'  => 'HET_TOKEN',
-        '\'s'  => 'SCH_TOKEN',
-        '\'s-' => 'SCH_DASH_TOKEN',
+        '\'t'  => 'T_HET',
+        '\'s'  => 'T_SCH',
+        '\'s-' => 'T_SCH_DASH',
     ];
 
     /**
-     * @param array $strippableKeywords
+     * @param array   $strippableKeywords
+     * @param integer $maxSuffixWordLength
      */
-    public function __construct(array $strippableKeywords = [])
+    public function __construct(array $strippableKeywords = [], $maxSuffixWordLength = 5)
     {
-        $this->strippableKeywords = $strippableKeywords;
+        $this->strippableKeywords  = $strippableKeywords;
+        $this->maxSuffixWordLength = $maxSuffixWordLength;
 
         // compose full address regex
         $this->addressRegex = sprintf(
@@ -100,8 +109,16 @@ class AddressParser
         $suffix = isset($matches['suffix']) ? $matches['suffix'] : null;
 
         // validate numberSuffix
-        if (null !== $suffix && preg_match('/[a-z]{5,}/i', $suffix)) {
-            throw new InvalidAddressException(sprintf('Unabled to parse number suffix "%s"', $suffix));
+        if (null !== $suffix && $this->maxSuffixWordLength > 0) {
+            if (preg_match(sprintf('/[a-z]{%d,}/i', $this->maxSuffixWordLength), $suffix)) {
+                throw new InvalidAddressException(
+                    sprintf(
+                        'Street number suffix has too many (>= %d) alphanumeric characters: "%s"',
+                        $this->maxSuffixWordLength,
+                        $suffix
+                    )
+                );
+            }
         }
 
         $streetNumber = $this->normalizeNumber($number, $suffix);
@@ -134,12 +151,12 @@ class AddressParser
         $address = str_ireplace($this->strippableKeywords, '', $address);
 
         $replacements = [
-            '/\*/'                   => ' ',        // convert asterisks to spaces
-            '/[\x{2000}-\x{200F}]/u' => '',         // remove zero width characters
-            '/[\(\)]*/'              => '',         // remove parentheses
-            '/[\-\/\.,"\' \!\?`]*$/' => '',         // remove trailing punctuation and whitespace
-            '/ {2,}/'                => ' ',        // correct more than 1 consecutive space
-            '/([^\d])[,#](\d+)/'     => '\\1 \\2',  // correct comma
+            '/\*/'                   => ' ',       // convert asterisks to spaces
+            '/[\x{2000}-\x{200F}]/u' => '',        // remove zero width characters
+            '/[\(\)]*/'              => '',        // remove parentheses
+            '/[\-\/\.,"\' \!\?`]*$/' => '',        // remove trailing punctuation and whitespace
+            '/ {2,}/'                => ' ',       // correct more than 1 consecutive space
+            '/([^\d])[,#](\d+)/'     => '\\1 \\2', // correct comma
         ];
 
         // replace these one by one as we rely on removing trailing stuff that doesn't necessarily end in exact order
