@@ -61,6 +61,7 @@ class AddressParserTest extends \PHPUnit_Framework_TestCase
             ['De Ruyterstra&#8203;at', 'De Ruyterstraat', 'De Ruyterstraat', null],
             ['Floralaan 74..', 'Floralaan 74', 'Floralaan', '74'],
             ['Antwerpsestraat 102 -VERLAAGD!', 'Antwerpsestraat 102', 'Antwerpsestraat', '102'],
+            ['29 oktoberplein 1', '29 oktoberplein 1', '29 oktoberplein', '1'],
 
             ['25 witton street', 'Witton street 25', 'Witton street', '25'],
             ['34 Eerste Adjehstraat', 'Eerste Adjehstraat 34', 'Eerste Adjehstraat', '34'],

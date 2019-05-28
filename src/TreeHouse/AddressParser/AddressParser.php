@@ -7,12 +7,12 @@ use TreeHouse\AddressParser\Exception\InvalidAddressException;
 class AddressParser
 {
     /**
-     * Start with potential numbers, followed by (at least one) alphabetic character(s),
+     * Start with potential numbers, followed by zero or one space and (at least one) alphabetic character(s),
      * and excluding any unexpected characters (#, @, %, etc.).
      *
      * @var string
      */
-    protected $regexStreetName = '\d*[a-zA-Z][^\d\$\%\@\#\*]';
+    protected $regexStreetName = '\d*[? a-zA-Z][^\d\$\%\@\#\*]';
 
     /**
      * The first following number(s) preceded by a letter, dash or space.
